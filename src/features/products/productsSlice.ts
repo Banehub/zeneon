@@ -1,15 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-
-export interface Product {
-  id: number;
-  name: string;
-  price: number;
-  description: string;
-  category: string;
-  image: string;
-  rating: number;
-  numReviews: number;
-}
+import { api, Product } from '../../services/api';
 
 interface ProductsState {
   items: Product[];
@@ -26,22 +16,15 @@ const initialState: ProductsState = {
 export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
   async () => {
-    const response = await fetch('http://localhost:8080/api/products');
-    if (!response.ok) {
-      throw new Error('Failed to fetch products');
-    }
-    return response.json();
+    return await api.getProducts();
   }
 );
 
 export const fetchProductsByCategory = createAsyncThunk(
   'products/fetchProductsByCategory',
   async (category: string) => {
-    const response = await fetch(`http://localhost:8080/api/products/category/${category}`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch products');
-    }
-    return response.json();
+    const products = await api.getProducts();
+    return products.filter(product => product.category === category);
   }
 );
 

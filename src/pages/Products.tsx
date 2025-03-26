@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
@@ -16,22 +15,17 @@ import {
   TextField,
   CardActionArea,
   SelectChangeEvent,
-  Button,
-  Rating,
   Paper,
+  Chip,
 } from '@mui/material';
-import { AppDispatch, RootState } from '../store';
-import { fetchProducts } from '../features/products/productsSlice';
-import { addToCart } from '../features/cart/cartSlice';
-import { Product } from '../features/products/productsSlice';
+import { api, Product } from '../services/api';
 
 const Products = () => {
-  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { items: products, status } = useSelector(
-    (state: RootState) => state.products
-  );
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const [sortBy, setSortBy] = useState('name');
   const [filterCategory, setFilterCategory] = useState(
@@ -40,10 +34,20 @@ const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (status === 'idle') {
-      dispatch(fetchProducts());
-    }
-  }, [status, dispatch]);
+    const fetchProducts = async () => {
+      try {
+        const data = await api.getProducts();
+        setProducts(data);
+        setLoading(false);
+      } catch (err) {
+        setError('Error loading products');
+        setLoading(false);
+        console.error('Error:', err);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   useEffect(() => {
     const category = searchParams.get('category');
@@ -65,16 +69,6 @@ const Products = () => {
       searchParams.set('category', newCategory);
     }
     setSearchParams(searchParams);
-  };
-
-  const handleAddToCart = (product: Product, event: React.MouseEvent) => {
-    event.stopPropagation();
-    dispatch(addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-    }));
   };
 
   const filteredAndSortedProducts = products
@@ -100,6 +94,26 @@ const Products = () => {
     });
 
   const categories = ['all', ...new Set(products.map((p) => p.category))];
+
+  if (loading) {
+    return (
+      <Container>
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Typography>Loading products...</Typography>
+        </Box>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container>
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Typography color="error">{error}</Typography>
+        </Box>
+      </Container>
+    );
+  }
 
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 4 }}>
@@ -208,7 +222,7 @@ const Products = () => {
                   <CardMedia
                     component="img"
                     height="200"
-                    image={product.image}
+                    image={product.imageUrl}
                     alt={product.name}
                     className="product-image"
                     sx={{
@@ -228,81 +242,42 @@ const Products = () => {
                     >
                       {product.name}
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <Rating value={product.rating} precision={0.1} readOnly size="small" />
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          ml: 1,
-                          color: 'text.secondary',
-                        }}
-                      >
-                        ({product.numReviews})
-                      </Typography>
-                    </Box>
                     <Typography
                       variant="body2"
-                      sx={{
-                        mb: 1,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        fontSize: { xs: '0.875rem', md: '1rem' },
-                        color: 'text.secondary',
-                      }}
+                      color="text.secondary"
+                      sx={{ mb: 1 }}
                     >
                       {product.description}
                     </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography
+                        variant="h6"
+                        color="primary"
+                        sx={{ fontWeight: 600 }}
+                      >
+                        ${product.price.toFixed(2)}
+                      </Typography>
+                      {product.featured && (
+                        <Chip
+                          label="Featured"
+                          color="primary"
+                          size="small"
+                          sx={{ ml: 1 }}
+                        />
+                      )}
+                    </Box>
                     <Typography
-                      variant="h6"
-                      sx={{
-                        mt: 'auto',
-                        fontSize: { xs: '1.1rem', md: '1.25rem' },
-                        fontWeight: 700,
-                        color: 'primary.main',
-                      }}
+                      variant="body2"
+                      color="text.secondary"
                     >
-                      R {product.price.toFixed(2)}
+                      Category: {product.category}
                     </Typography>
                   </CardContent>
                 </CardActionArea>
-                <Box sx={{ p: 2, pt: 0 }}>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    color="primary"
-                    onClick={(e) => handleAddToCart(product, e)}
-                    sx={{
-                      py: 1.5,
-                    }}
-                  >
-                    Add to Cart
-                  </Button>
-                </Box>
               </Card>
             </Grid>
           ))}
         </Grid>
-
-        {filteredAndSortedProducts.length === 0 && (
-          <Box
-            sx={{
-              textAlign: 'center',
-              py: { xs: 6, md: 8 },
-            }}
-          >
-            <Typography
-              variant="h6"
-              sx={{
-                fontSize: { xs: '1rem', md: '1.25rem' },
-                color: 'text.secondary',
-              }}
-            >
-              No products found matching your criteria
-            </Typography>
-          </Box>
-        )}
       </Container>
     </Box>
   );

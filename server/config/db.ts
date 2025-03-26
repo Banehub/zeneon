@@ -1,16 +1,28 @@
-import mongoose from 'mongoose';
+import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const connectDB = async () => {
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+// Test the connection
+const testConnection = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ecomstore');
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-  } catch (error: any) {
-    console.error(`Error: ${error.message}`);
+    const connection = await pool.getConnection();
+    console.log('MySQL Connected');
+    connection.release();
+  } catch (error) {
+    console.error('Error connecting to MySQL:', error);
     process.exit(1);
   }
 };
 
-export default connectDB; 
+export { pool, testConnection }; 

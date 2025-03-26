@@ -1,16 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Box, Grid, Card, CardContent, CardMedia, Typography, Container } from '@mui/material';
-
-interface Product {
-  _id: string;
-  name: string;
-  description: string;
-  price: number;
-  image: string;
-  category: string;
-  rating: number;
-  numReviews: number;
-}
+import { api, Product } from '../services/api';
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -20,11 +10,7 @@ export default function Products() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('/api/products');
-        if (!response.ok) {
-          throw new Error('Failed to fetch products');
-        }
-        const data = await response.json();
+        const data = await api.getProducts();
         setProducts(data);
         setLoading(false);
       } catch (err) {
@@ -38,11 +24,23 @@ export default function Products() {
   }, []);
 
   if (loading) {
-    return <Typography>Loading...</Typography>;
+    return (
+      <Container>
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Typography>Loading products...</Typography>
+        </Box>
+      </Container>
+    );
   }
 
   if (error) {
-    return <Typography color="error">{error}</Typography>;
+    return (
+      <Container>
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Typography color="error">{error}</Typography>
+        </Box>
+      </Container>
+    );
   }
 
   return (
@@ -53,7 +51,7 @@ export default function Products() {
         </Typography>
         <Grid container spacing={3}>
           {products.map((product) => (
-            <Grid item key={product._id} xs={12} sm={6} md={4}>
+            <Grid item key={product.id} xs={12} sm={6} md={4}>
               <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardMedia
                   component="img"
@@ -73,7 +71,7 @@ export default function Products() {
                     ${product.price.toFixed(2)}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Rating: {product.rating} ({product.numReviews} reviews)
+                    Rating: {product.rating.toFixed(1)} ({product.numReviews} reviews)
                   </Typography>
                 </CardContent>
               </Card>
